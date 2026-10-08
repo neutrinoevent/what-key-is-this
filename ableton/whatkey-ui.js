@@ -6,7 +6,10 @@ mgraphics.autofill = 0;
 
 const FONT = "Ableton Sans Medium";
 const FONT_BOLD = "Ableton Sans Bold";
+const NOTES = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
 let state = { mode: "idle", text: "Drop an audio file on the left" };
+let showRelatives = false;
+let button = null; // [x, y, w, h] of the Relatives toggle, set while painting
 
 function status() { state = { mode: "busy", text: arrayfromargs(arguments).join(" ") }; mgraphics.redraw(); }
 function error() { state = { mode: "error", text: arrayfromargs(arguments).join(" ") }; mgraphics.redraw(); }
@@ -55,6 +58,25 @@ function watermark(str, W, H) {
   mgraphics.show_text(str);
 }
 
+// Relative major/minor: same Camelot number, other letter.
+function relative(k) {
+  const [note, mode] = k.key.split(" ");
+  const minor = mode === "minor", tonic = NOTES.indexOf(note);
+  return {
+    key: NOTES[(tonic + (minor ? 3 : 9)) % 12] + (minor ? " major" : " minor"),
+    camelot: k.camelot.slice(0, -1) + (minor ? "B" : "A"),
+  };
+}
+
+function onclick(x, y) {
+  if (state.mode !== "result" || !button) return;
+  const [bx, by, bw, bh] = button;
+  if (x >= bx && x <= bx + bw && y >= by && y <= by + bh) {
+    showRelatives = !showRelatives;
+    mgraphics.redraw();
+  }
+}
+
 function shortKey(k) { return k.replace(" major", "").replace(" minor", "m"); }
 
 function paint() {
@@ -85,14 +107,24 @@ function paint() {
   const kw = text(top.key, 12, 48, 24, FG, FONT_BOLD);
   rect(20 + kw, 30, 34, 20, 4, camelotColor(top.camelot));
   text(top.camelot, 27 + kw, 45, 12, [0.08, 0.08, 0.08, 1], FONT_BOLD);
-  text(Math.round(top.prob * 100) + "%", 62 + kw, 46, 13, DIM);
+  const pw = text(Math.round(top.prob * 100) + "%", 62 + kw, 46, 13, DIM);
+  if (showRelatives) {
+    const r = relative(top);
+    const rw = text("rel. " + shortKey(r.key), 74 + kw + pw, 46, 13, DIM);
+    text(r.camelot, 80 + kw + pw + rw, 46, 12, camelotColor(r.camelot));
+  }
 
-  // Runner-up bars
-  const barX = 108, barW = W - barX - 48;
+  // Runner-up bars (shifted right to make room for relatives when shown)
+  const barX = showRelatives ? 186 : 108, barW = W - barX - 48;
   d.keys.slice(1).forEach((k, i) => {
     const y = 62 + i * 17;
     text(k.key, 12, y + 11, 11, FG);
     text(k.camelot, 78, y + 11, 10, camelotColor(k.camelot));
+    if (showRelatives) {
+      const r = relative(k);
+      text(r.key, 108, y + 11, 10, DIM);
+      text(r.camelot, 158, y + 11, 10, camelotColor(r.camelot, 0.7));
+    }
     rect(barX, y + 2, barW, 10, 3, [1, 1, 1, 0.06]);
     rect(barX, y + 2, Math.max(3, barW * k.prob), 10, 3, camelotColor(k.camelot, 0.85));
     text((k.prob * 100).toFixed(1) + "%", barX + barW + 6, y + 11, 10, DIM);
@@ -110,4 +142,12 @@ function paint() {
     text(label, x + 5, y, 10, FG);
     x += w + 5;
   });
+
+  // Relatives toggle, styled like the chips
+  const label = "Relatives";
+  mgraphics.set_font_size(10);
+  const bw = mgraphics.text_measure(label)[0] + 12;
+  button = [W - 12 - bw, y - 11, bw, 15];
+  rect(button[0], button[1], bw, 15, 4, showRelatives ? [1, 1, 1, 0.85] : [1, 1, 1, 0.08]);
+  text(label, button[0] + 6, y, 10, showRelatives ? [0.08, 0.08, 0.08, 1] : DIM, showRelatives ? FONT_BOLD : FONT);
 }
