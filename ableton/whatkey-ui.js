@@ -1,4 +1,5 @@
 // v8ui panel for the WhatKey device. Messages: status <text>, error <text>, result <json>.
+autowatch = 1; // reload in Live when this file is saved
 mgraphics.init();
 mgraphics.relative_coords = 0;
 mgraphics.autofill = 0;
@@ -42,12 +43,25 @@ function rect(x, y, w, h, r, rgba) {
   mgraphics.fill();
 }
 
+// Faint backing text, sized to ~85% of the panel width and centred in it.
+function watermark(str, W, H) {
+  mgraphics.select_font_face("Helvetica Neue");
+  mgraphics.set_font_size(100);
+  const size = Math.min(100 * (W * 0.85) / mgraphics.text_measure(str)[0], H * 0.8);
+  mgraphics.set_font_size(size);
+  const tw = mgraphics.text_measure(str)[0];
+  mgraphics.set_source_rgba(1, 1, 1, 0.035);
+  mgraphics.move_to((W - tw) / 2, H / 2 + size * 0.36); // ~half cap height below centre
+  mgraphics.show_text(str);
+}
+
 function shortKey(k) { return k.replace(" major", "").replace(" minor", "m"); }
 
 function paint() {
   const [W, H] = mgraphics.size;
   const DIM = [1, 1, 1, 0.45], FG = [1, 1, 1, 0.92];
   rect(0, 0, W, H, 6, [0.11, 0.11, 0.12, 1]);
+  watermark("ALL OUT", W, H);
 
   if (state.mode !== "result") {
     const col = state.mode === "error" ? [1, 0.45, 0.4, 1] : state.mode === "busy" ? FG : DIM;
