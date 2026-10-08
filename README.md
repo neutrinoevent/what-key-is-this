@@ -1,7 +1,10 @@
 # what-key-is-this
 
-A small CLI that estimates the most likely musical keys of audio files, with
-Camelot codes and harmonically compatible keys.
+Estimates the most likely musical keys of audio files, with Camelot codes and
+harmonically compatible keys. Use it as a command-line tool, or as a drag-and-drop
+Max for Live device inside Ableton Live.
+
+![WhatKey device in Ableton Live](docs/device.png)
 
 ## Requirements
 
@@ -52,7 +55,21 @@ python3 ableton/build_device.py
 
 This installs **WhatKey** into `User Library/Presets/Audio Effects/Max Audio Effect/`.
 Drag it onto any audio track (audio passes through untouched), then drop an audio file,
-from Finder or Live's browser, onto the left panel. The key results appear in the device.
+from Finder or Live's browser, onto the left panel. The device shows:
+
+- the file name, length, tuning offset and segment agreement ("stable")
+- the top key with its Camelot badge and confidence
+- the next four candidates as bars
+- **Mixes with**: the relative, dominant (V) and subdominant (IV) keys of the top pick
+- a **Relatives** toggle (off by default) that adds the relative major/minor next to every ranked key
+
+![Relatives toggle on](docs/device-relatives.png)
+
+The last dropped file is remembered with the Live Set and re-analyzed when the set opens.
+
+**Files:** `ableton/build_device.py` generates the `.amxd`; `ableton/whatkey-node.js` (Node for Max)
+runs `whatkey.py --json`; `ableton/whatkey-ui.js` (`v8ui`) draws the panel and reloads in Live
+automatically when edited.
 
 The device points at this folder by absolute path and runs `whatkey.py` with the Python that ran
 the build script, so re-run the build if you move the repo or switch Python installs.
