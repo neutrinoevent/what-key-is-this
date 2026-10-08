@@ -45,7 +45,7 @@ function rect(x, y, w, h, r, rgba) {
 
 // Faint backing text, sized to ~85% of the panel width and centred in it.
 function watermark(str, W, H) {
-  mgraphics.select_font_face("Helvetica Neue");
+  mgraphics.select_font_face("Helvetica Neue Bold");
   mgraphics.set_font_size(100);
   const size = Math.min(100 * (W * 0.85) / mgraphics.text_measure(str)[0], H * 0.8);
   mgraphics.set_font_size(size);
