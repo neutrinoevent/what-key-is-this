@@ -1,0 +1,8 @@
+# Audio you drop in for analysis stays local
+audio-to-analyze/*
+!audio-to-analyze/.gitkeep
+
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
