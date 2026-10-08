@@ -17,6 +17,7 @@ Drop audio files into `audio-to-analyze/` and run:
 python3 whatkey.py                  # analyzes everything in audio-to-analyze/
 python3 whatkey.py song.mp3 -n 8    # specific files/folders, show top 8 keys
 python3 whatkey.py -t 0.1           # softer (less peaky) percentages
+python3 whatkey.py song.wav --json  # machine-readable output
 ```
 
 Example output:
@@ -40,6 +41,21 @@ Harmonically compatible with #1:
 - **Percentage**: relative confidence (softmax of profile correlations), not a calibrated probability.
 - **Segment agreement**: how often shorter chunks of the track pick the same top key; low values suggest modulation or ambiguity.
 - Keys that share most of their notes (e.g. E major / A major / F# minor) often land close together; that's expected.
+
+## Ableton Live device (Max for Live)
+
+Requires Live Suite (or Max for Live). From the repo folder:
+
+```
+python3 ableton/build_device.py
+```
+
+This installs **WhatKey** into `User Library/Presets/Audio Effects/Max Audio Effect/`.
+Drag it onto any audio track (audio passes through untouched), then drop an audio file,
+from Finder or Live's browser, onto the left panel. The key results appear in the device.
+
+The device points at this folder by absolute path and runs `whatkey.py` with the Python that ran
+the build script, so re-run the build if you move the repo or switch Python installs.
 
 ## How it works
 

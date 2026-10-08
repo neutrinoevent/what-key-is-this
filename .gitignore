@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 .venv/
 .DS_Store
+
+# Generated per machine by ableton/build_device.py
+ableton/config.json
+*.amxd

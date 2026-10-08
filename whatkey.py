@@ -8,8 +8,10 @@ correlate against Krumhansl-Kessler and Temperley key profiles for all
 Usage:
     python whatkey.py                  # analyze everything in ./audio-to-analyze
     python whatkey.py song.mp3 -n 8    # specific files, show top 8
+    python whatkey.py song.wav --json  # machine-readable output
 """
 import argparse
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -113,10 +115,10 @@ def neighbors(i):
 
 
 def analyze(path, top_n, temperature):
+    """Return a dict describing the likely keys of one audio file (None if empty)."""
     y = load_audio(path)
     if not len(y):
-        print(f"\n{path.name}: no audio decoded, skipping")
-        return
+        return None
     chroma, energy, cents = chroma_frames(y)
     keep = energy > 0.1 * np.median(energy)  # ignore near-silent frames
     chroma = chroma / (energy[:, None] + 1e-12)
@@ -134,19 +136,35 @@ def analyze(path, top_n, temperature):
         np.argmax(key_scores(chroma[s:s + seg][keep[s:s + seg]].mean(axis=0)))
         for s in range(0, len(chroma), seg) if keep[s:s + seg].sum() > seg // 4
     ]
-    agree = np.mean([w == order[0] for w in seg_winners]) if seg_winners else float("nan")
+    agree = float(np.mean([w == order[0] for w in seg_winners])) if seg_winners else None
 
-    print(f"\n{path.name}  ({len(y) / SR:.0f}s, tuning {cents:+.0f} cents)")
-    print("-" * 52)
-    for rank, i in enumerate(order[:top_n], 1):
+    def entry(i, **extra):
         name, cam = key_name(i)
-        bar = "#" * int(round(probs[i] * 40))
-        print(f"{rank:>2}. {name:<10} {cam:>4}  {probs[i] * 100:5.1f}%  {bar}")
-    print(f"Segment agreement with #1: {agree * 100:.0f}% of {len(seg_winners)} x {seg_sec:.0f}s chunks")
+        return {"key": name, "camelot": cam, "prob": round(float(probs[i]), 4), **extra}
+
+    return {
+        "file": path.name,
+        "duration": round(len(y) / SR, 1),
+        "tuning_cents": round(float(cents), 1),
+        "keys": [entry(i) for i in order[:top_n]],
+        "segment_agreement": agree,
+        "segments": len(seg_winners),
+        "segment_seconds": round(seg_sec, 1),
+        "compatible": [entry(j, relation=label) for label, j in neighbors(order[0]).items()],
+    }
+
+
+def print_report(r):
+    print(f"\n{r['file']}  ({r['duration']:.0f}s, tuning {r['tuning_cents']:+.0f} cents)")
+    print("-" * 52)
+    for rank, k in enumerate(r["keys"], 1):
+        bar = "#" * int(round(k["prob"] * 40))
+        print(f"{rank:>2}. {k['key']:<10} {k['camelot']:>4}  {k['prob'] * 100:5.1f}%  {bar}")
+    agree = "n/a" if r["segment_agreement"] is None else f"{r['segment_agreement'] * 100:.0f}%"
+    print(f"Segment agreement with #1: {agree} of {r['segments']} x {r['segment_seconds']:.0f}s chunks")
     print("Harmonically compatible with #1:")
-    for label, j in neighbors(order[0]).items():
-        name, cam = key_name(j)
-        print(f"    {label:<17} {name:<10} {cam:>4}  {probs[j] * 100:5.1f}%")
+    for k in r["compatible"]:
+        print(f"    {k['relation']:<17} {k['key']:<10} {k['camelot']:>4}  {k['prob'] * 100:5.1f}%")
 
 
 def main():
@@ -155,6 +173,7 @@ def main():
     ap.add_argument("-n", "--top", type=int, default=5, help="number of keys to show (default 5)")
     ap.add_argument("-t", "--temperature", type=float, default=0.05,
                     help="softmax temperature; lower = more confident-looking (default 0.05)")
+    ap.add_argument("--json", action="store_true", help="print one JSON object per file instead of a report")
     args = ap.parse_args()
 
     files = []
@@ -169,9 +188,16 @@ def main():
         sys.exit(f"No audio files found. Drop some into {DEFAULT_DIR}/")
     for f in files:
         try:
-            analyze(f, args.top, args.temperature)
+            r = analyze(f, args.top, args.temperature)
         except subprocess.CalledProcessError as e:
-            print(f"\n{f.name}: ffmpeg failed: {e.stderr.decode().strip()}", file=sys.stderr)
+            print(f"{f.name}: ffmpeg failed: {e.stderr.decode().strip()}", file=sys.stderr)
+            continue
+        if r is None:
+            print(f"{f.name}: no audio decoded, skipping", file=sys.stderr)
+        elif args.json:
+            print(json.dumps(r), flush=True)
+        else:
+            print_report(r)
 
 
 if __name__ == "__main__":
