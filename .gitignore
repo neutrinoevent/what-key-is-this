@@ -10,3 +10,4 @@ __pycache__/
 # Generated per machine by ableton/build_device.py
 ableton/config.json
 *.amxd
+fl-studio/build/

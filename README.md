@@ -1,8 +1,8 @@
 # what-key-is-this
 
 Estimates the most likely musical keys of audio files, with Camelot codes and
-harmonically compatible keys. Use it as a command-line tool, or as a drag-and-drop
-Max for Live device inside Ableton Live.
+harmonically compatible keys. Use it as a command-line tool, as a drag-and-drop
+Max for Live device inside Ableton Live, or as a VST3/AU plugin for FL Studio (or any other DAW).
 
 ![WhatKey device in Ableton Live](docs/device.png)
 
@@ -73,6 +73,31 @@ automatically when edited.
 
 The device points at this folder by absolute path and runs `whatkey.py` with the Python that ran
 the build script, so re-run the build if you move the repo or switch Python installs.
+
+## FL Studio / VST3 + AU plugin (macOS)
+
+The same interface as a regular plugin, built with [JUCE](https://juce.com). Needs Xcode
+(or the Command Line Tools) and CMake (`brew install cmake`). From the repo folder:
+
+```
+./fl-studio/build.sh
+```
+
+The first build downloads JUCE and takes a few minutes. It installs:
+
+- `~/Library/Audio/Plug-Ins/VST3/WhatKey.vst3`
+- `~/Library/Audio/Plug-Ins/Components/WhatKey.component` (AU, for Logic, GarageBand, etc.)
+
+In FL Studio: **Options → Manage plugins → Find more plugins**, then add **WhatKey** to any
+mixer insert (audio passes through untouched). Drag an audio file from Finder or FL's browser
+onto the plugin, or click the drop zone to pick a file. Like the Live device, it remembers the
+last file with your project and has the same **Relatives** toggle.
+
+![WhatKey plugin](docs/plugin.png)
+
+Like the Live device, the plugin runs `whatkey.py` with the Python and paths found at build time,
+so re-run `build.sh` if you move the repo or switch Python installs. macOS only for now.
+Validated with [pluginval](https://github.com/Tracktion/pluginval) (strictness 10) and `auval`.
 
 ## How it works
 
